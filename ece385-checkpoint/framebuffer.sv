@@ -15,9 +15,18 @@ module gpu_framebuffer (
     assign ready = state == READY;
     assign start = state == LAUNCH;
     rasterizer draw (
-        .clk(clk), .reset(reset), .start(start),
-        .x0(X0), .y0(Y0), .x1(X1), .y1(Y1), .x2(X2), .y2(Y2),
-        .color(COLOR), .busy(), .done(done), .wr(wr), .addr(draw_addr), .pixel(draw_pixel)
+        .clk(clk),
+        .reset(reset),
+        .start(start),
+        .x0(x0), .y0(y0),
+        .x1(x1), .y1(y1),
+        .x2(x2), .y2(y2),
+        .color(triangle_color),
+        .busy(),
+        .done(done),
+        .wr(wr),
+        .addr(draw_addr),
+        .pixel(draw_pixel)
     );
 
 logic write_enable;
@@ -37,12 +46,20 @@ always_ff @(posedge clk)
     always_ff @(posedge clk)
         if (reset) begin
             state <= CLEAR;
+            triangle_idx <= 3'd0;
             clear_addr <= 0;
         end else case (state)
             CLEAR: if (clear_addr == 76799) state <= LAUNCH;
                    else clear_addr <= clear_addr + 1'b1;
             LAUNCH: state <= RENDER;
-            RENDER: if (done) state <= READY;
+            RENDER: if (done) begin
+        if (triangle_idx == LAST_TRIANGLE) begin
+        state <= READY;
+    end else begin
+        triangle_idx <= triangle_idx + 3'd1;;
+        state <= LAUNCH;
+    end
+end
             READY: state <= READY;
         endcase
 endmodule
